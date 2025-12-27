@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Scope Guard — v5</title>
+
+<style>
+/* =====================
+   THEME SYSTEM (10 THEMES)
+   ===================== */
+:root{
+ --bg:#0b0f14;--card:#0f172a;--soft:#111c3a;--text:#e6f1ff;--muted:#8aa2c2;
+ --accent:#00f0ff;--danger:#ff5c5c;--success:#22c55e;--warn:#facc15;
+ --border:#1e2a3a;--radius:18px;--glow:0 0 20px rgba(0,240,255,.22)
+}
+[data-theme="light"]{--bg:#f5f7fb;--card:#ffffff;--soft:#f1f5f9;--text:#111827;--muted:#6b7280;--accent:#2563eb;--border:#e5e7eb;--glow:none}
+[data-theme="graphite"]{--bg:#0f0f0f;--card:#1b1b1b;--soft:#222;--text:#ededed;--muted:#9ca3af;--accent:#7c7cff;--border:#2a2a2a;--glow:none}
+[data-theme="paper"]{--bg:#fbf7f2;--card:#ffffff;--soft:#f7efe4;--text:#2b2b2b;--muted:#6a6a6a;--accent:#8b5e3c;--border:#e2d8cc;--glow:none}
+[data-theme="solar"]{--bg:#002b36;--card:#073642;--soft:#0a3d46;--text:#eee8d5;--muted:#93a1a1;--accent:#b58900;--border:#0f4b54}
+[data-theme="forest"]{--bg:#0d1f14;--card:#132e21;--soft:#1b3d2c;--text:#e6fff2;--muted:#7fbfa3;--accent:#4ade80;--border:#244c38}
+[data-theme="midnight"]{--bg:#05060a;--card:#0c0f1a;--soft:#121528;--text:#dbeafe;--muted:#7c83a3;--accent:#818cf8;--border:#1b1f3a}
+[data-theme="rose"]{--bg:#1f0b14;--card:#2a0f1b;--soft:#3b1627;--text:#ffe4ef;--muted:#e7a1bf;--accent:#fb7185;--border:#522136}
+[data-theme="amber"]{--bg:#1c1304;--card:#2a1c06;--soft:#3a2808;--text:#fff7ed;--muted:#fcd34d;--accent:#f59e0b;--border:#4b320c}
+
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+background:radial-gradient(1200px 600px at 10% -10%,rgba(255,255,255,.04),var(--bg));
+color:var(--text);transition:background .4s ease,color .3s ease}
+header{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,var(--bg),transparent);backdrop-filter:blur(10px)}
+.bar{max-width:1200px;margin:auto;padding:18px 22px;display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:18px;font-weight:600}
+small{color:var(--muted)}
+
+/* Hamburger */
+.hamburger{width:36px;height:36px;border-radius:12px;border:1px solid var(--border);display:grid;place-items:center;cursor:pointer}
+.hamburger div{width:18px;height:2px;background:var(--text);margin:2px 0}
+
+/* Drawer */
+#drawer{position:fixed;top:0;right:-320px;width:300px;height:100%;background:linear-gradient(180deg,var(--card),var(--bg));border-left:1px solid var(--border);transition:right .35s ease;z-index:40;padding:22px;display:grid;gap:14px}
+#drawer.open{right:0}
+.drawer-header{display:flex;justify-content:space-between;align-items:center}
+.drawer-header h3{margin:0;font-size:15px}
+.drawer-close{cursor:pointer;font-size:20px}
+.drawer-section{padding:12px;border-radius:14px;background:var(--soft)}
+.drawer-section h4{margin:0 0 8px 0;font-size:14px}
+
+select,input,textarea,button{background:var(--soft);color:var(--text);border:1px solid var(--border);border-radius:14px;padding:12px;font-size:14px}
+textarea{resize:vertical;min-height:90px}
+button{cursor:pointer;background:linear-gradient(135deg,var(--accent),#3bf5ff);border:none;color:#001014;font-weight:600;box-shadow:var(--glow)}
+button.secondary{background:transparent;color:var(--text);border:1px solid var(--border);box-shadow:none}
+button:active{transform:scale(.97)}
+
+main{max-width:1200px;margin:auto;padding:28px 22px 160px;display:grid;gap:22px}
+.card{background:linear-gradient(180deg,var(--card),rgba(0,0,0,.2));border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.card h2{margin-top:0;font-size:16px}
+.muted{color:var(--muted);font-size:13px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.feature{border:1px dashed var(--border);padding:14px;border-radius:14px}
+.badge{display:inline-block;padding:6px 12px;border-radius:20px;background:var(--border);font-size:12px;margin:4px}
+.alert{padding:12px;border-radius:12px;background:rgba(255,92,92,.12);border:1px solid var(--danger);margin-top:10px}
+footer{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(0deg,var(--bg),transparent);border-top:1px solid var(--border);padding:12px;text-align:center;font-size:12px;color:var(--muted)}
+#preview{display:none}
+.locked input,.locked textarea,.locked select{opacity:.5;pointer-events:none}
+
+/* Guide Modal */
+#guide{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50}
+#guide .content{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px;max-width:720px;width:95%;line-height:1.6}
+#guide h2{margin-top:0}
+</style>
+</head>
+
+<body data-theme="futuristic">
+<header>
+ <div class="bar">
+  <div>
+   <h1>Project Scope Guard</h1>
+   <small>Define → Lock → Execute → Exit</small>
+  </div>
+  <div class="hamburger" onclick="toggleDrawer()"><div></div><div></div><div></div></div>
+ </div>
+</header>
+
+<!-- DRAWER -->
+<div id="drawer">
+ <div class="drawer-header">
+  <h3>Menu</h3>
+  <div class="drawer-close" onclick="toggleDrawer()">✕</div>
+ </div>
+ <div class="drawer-section">
+  <h4>Themes</h4>
+  <select id="themeSelect">
+   <option value="futuristic">Futuristic</option>
+   <option value="light">Light</option>
+   <option value="graphite">Graphite</option>
+   <option value="paper">Paper</option>
+   <option value="solar">Solar</option>
+   <option value="forest">Forest</option>
+   <option value="midnight">Midnight</option>
+   <option value="rose">Rose</option>
+   <option value="amber">Amber</option>
+  </select>
+ </div>
+ <div class="drawer-section">
+  <h4>Templates</h4>
+  <button class="secondary" onclick="applyTemplate('student')">Student Project</button>
+  <button class="secondary" onclick="applyTemplate('mvp')">MVP</button>
+  <button class="secondary" onclick="applyTemplate('research')">Research</button>
+  <button class="secondary" onclick="applyTemplate('thesis')">Thesis</button>
+  <button class="secondary" onclick="applyTemplate('startup')">Startup</button>
+ </div>
+ <div class="drawer-section">
+  <h4>Help</h4>
+  <button class="secondary" onclick="openGuide()">Step-by-Step Guide</button>
+ </div>
+</div>
+
+<main id="editor">
+<section class="card">
+<h2>Project Identity</h2>
+<div class="row">
+<input id="name" placeholder="Project name">
+<select id="type"><option>Web App</option><option>Academic</option><option>Research</option><option>MVP</option><option>Other</option></select>
+<input id="deadline" type="date">
+</div>
+</section>
+
+<section class="card">
+<h2>Core Goal</h2>
+<textarea id="goal" maxlength="120"></textarea>
+<div class="muted"><span id="gcount">0</span>/120</div>
+</section>
+
+<section class="card">
+<h2>Why This Scope?</h2>
+<textarea id="why"></textarea>
+</section>
+
+<section class="card">
+<h2>Must-Have Features (Max 3)</h2>
+<div class="row">
+<div class="feature"><input id="f1" placeholder="Feature 1"></div>
+<div class="feature"><input id="f2" placeholder="Feature 2"></div>
+<div class="feature"><input id="f3" placeholder="Feature 3"></div>
+</div>
+<div id="violation" class="alert" style="display:none">⚠ Scope violation detected</div>
+</section>
+
+<section class="card">
+<h2>❌ Not Allowed</h2>
+<textarea id="no"></textarea>
+</section>
+
+<section class="card">
+<h2>Exit Criteria</h2>
+<textarea id="exit"></textarea>
+</section>
+
+<section class="card">
+<h2>Progress</h2>
+<input type="range" id="progress" min="0" max="100">
+<div class="muted">Progress: <span id="pval">0</span>%</div>
+<div id="badges"></div>
+</section>
+
+<section class="card">
+<h2>Actions</h2>
+<div class="row">
+<button onclick="lockScope()">🔒 Lock Scope</button>
+<button class="secondary" onclick="exportMD()">Markdown</button>
+<button class="secondary" onclick="exportJSON()">JSON</button>
+<button class="secondary" onclick="exportURL()">Data URL</button>
+<button class="danger" onclick="resetAll()">Full Reset</button>
+</div>
+</section>
+</main>
+
+<main id="preview">
+<section class="card">
+<h2>🔒 Locked Scope</h2>
+<pre id="previewText"></pre>
+<div class="row">
+<button onclick="copyLocked()">📋 Copy to Clipboard</button>
+<button onclick="exportPNG()">PNG</button>
+<button onclick="printPDF()">PDF</button>
+</div>
+</section>
+</main>
+
+<!-- GUIDE -->
+<div id="guide">
+ <div class="content">
+  <h2>How to Use Project Scope Guard</h2>
+  <ol>
+   <li><b>Name your project</b> and choose the type.</li>
+   <li><b>Write one clear goal</b>. If it can’t fit in one sentence, it’s too big.</li>
+   <li><b>Explain why this scope is limited</b> (deadline, skill, resources).</li>
+   <li><b>Define exactly 1–3 must-have features.</b></li>
+   <li><b>Explicitly list what is NOT allowed.</b></li>
+   <li><b>Define exit criteria</b> — when is this project DONE?</li>
+   <li><b>Lock the scope.</b> Editing is disabled.</li>
+   <li><b>Execute.</b> Exit only when criteria are met.</li>
+  </ol>
+  <button onclick="closeGuide()">Close Guide</button>
+ </div>
+</div>
+
+<footer>Made with ❤️ by <strong>Aliriyaj007</strong></footer>
+
+<script>
+const $=id=>document.getElementById(id)
+let S=JSON.parse(localStorage.getItem('PSG_V5'))||{badges:[],locked:false}
+function save(){localStorage.setItem('PSG_V5',JSON.stringify(S))}
+
+function toggleDrawer(){ $('drawer').classList.toggle('open') }
+$('themeSelect').onchange=e=>{document.body.dataset.theme=e.target.value;S.theme=e.target.value;save()}
+$('goal').oninput=e=>$('gcount').textContent=e.target.value.length
+$('progress').oninput=e=>{$('pval').textContent=e.target.value;if(e.target.value==100)addBadge('Completed')}
+
+function addBadge(b){if(!S.badges.includes(b)){S.badges.push(b);renderBadges();save()}}
+function renderBadges(){$('badges').innerHTML=S.badges.map(b=>`<span class="badge">${b}</span>`).join('')}
+
+function collect(){return{name:$('name').value,type:$('type').value,deadline:$('deadline').value,goal:$('goal').value,why:$('why').value,features:[$('f1').value,$('f2').value,$('f3').value].filter(Boolean),notAllowed:$('no').value,exit:$('exit').value,progress:$('progress').value,author:'Aliriyaj007'}}
+
+function lockScope(){S.data=collect();S.locked=true;save();addBadge('Scope Locked');$('editor').classList.add('locked');$('editor').style.display='none';$('preview').style.display='grid';$('previewText').textContent=JSON.stringify(S.data,null,2)}
+
+function copyLocked(){navigator.clipboard.writeText($('previewText').textContent);addBadge('Copied')}
+
+['f1','f2','f3','goal','why','no','exit'].forEach(id=>$(id).addEventListener('input',()=>{if(S.locked)$('violation').style.display='block'}))
+
+function applyTemplate(t){
+ if(t==='student'){ $('type').value='Academic'; $('goal').value='Complete syllabus-aligned academic project'; $('exit').value='Submitted and approved'; }
+ if(t==='mvp'){ $('type').value='MVP'; $('goal').value='Build minimal usable product'; $('no').value='No login, no backend'; }
+ if(t==='research'){ $('type').value='Research'; $('goal').value='Answer defined research question'; $('exit').value='Paper drafted'; }
+ if(t==='thesis'){ $('type').value='Academic'; $('goal').value='Complete thesis with approved methodology'; $('exit').value='Thesis submitted'; }
+ if(t==='startup'){ $('type').value='Web App'; $('goal').value='Validate core startup idea with users'; $('no').value='No scaling, no paid ads'; }
+ $('gcount').textContent=$('goal').value.length
+ toggleDrawer()
+}
+
+function exportMD(){const d=collect();const md=`# ${d.name}\n\n## Goal\n${d.goal}\n\n## Features\n${d.features.map(f=>'- '+f).join('\n')}\n\n## Exit Criteria\n${d.exit}\n\n---\nMade with ❤️ by Aliriyaj007`;navigator.clipboard.writeText(md);addBadge('Exported')}
+function exportJSON(){const blob=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scope.json';a.click();addBadge('Exported')}
+function exportURL(){const u=btoa(JSON.stringify(collect()));navigator.clipboard.writeText(location.origin+location.pathname+'#'+u);addBadge('Shared')}
+
+function exportPNG(){const c=document.createElement('canvas');const ctx=c.getContext('2d');const text=$('previewText').textContent.split('\n');c.width=1100;c.height=40*text.length+80;ctx.fillStyle='#0b0f14';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#e6f1ff';ctx.font='18px monospace';text.forEach((l,i)=>ctx.fillText(l,40,60+i*30));ctx.fillText('Made with ❤️ by Aliriyaj007',40,c.height-30);const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='scope.png';a.click();addBadge('Exported')}
+function printPDF(){window.print()}
+
+function openGuide(){ $('guide').style.display='flex' }
+function closeGuide(){ $('guide').style.display='none' }
+
+function resetAll(){if(confirm('Erase everything?')){localStorage.clear();location.reload()}}
+renderBadges()
+</script>
+</body>
+</html>
